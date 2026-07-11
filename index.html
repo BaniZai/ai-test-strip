@@ -88,31 +88,23 @@
           <div id="hint" class="text-xs text-gray-400 mt-2 h-4"></div>
         </div>
 
-        <!-- 预置样例：分类标签式 -->
-        <div class="mt-8">
+        <!-- 滴一下按钮 -->
+        <button id="submitBtn" disabled
+          class="w-full mt-4 py-4 rounded-2xl text-white text-base font-semibold transition-all active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:active:scale-100 bg-gray-900 shadow-lg shadow-gray-900/20">
+          滴一下
+        </button>
+
+        <!-- 预置样例 -->
+        <div class="mt-6">
           <div class="flex items-center justify-between mb-4">
             <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">场景样例</span>
             <span class="text-xs text-gray-400">点击快速体验</span>
-          </div>
-          
-          <!-- 分类导航 -->
-          <div class="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-            <button class="category-tab active px-4 py-2 rounded-full text-xs font-medium bg-gray-900 text-white whitespace-nowrap transition-all" data-category="all">全部</button>
-            <button class="category-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-gray-600 border border-gray-200 whitespace-nowrap transition-all" data-category="规则条件">规则条件</button>
-            <button class="category-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-gray-600 border border-gray-200 whitespace-nowrap transition-all" data-category="工作流">工作流</button>
-            <button class="category-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-gray-600 border border-gray-200 whitespace-nowrap transition-all" data-category="小模型/机器学习">小模型</button>
-            <button class="category-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-gray-600 border border-gray-200 whitespace-nowrap transition-all" data-category="AI/大模型">AI大模型</button>
           </div>
 
           <!-- 样例列表 -->
           <div id="sampleList" class="grid grid-cols-1 gap-3"></div>
         </div>
       </div>
-
-      <button id="submitBtn" disabled
-        class="w-full mt-6 py-4 rounded-2xl text-white text-base font-semibold transition-all active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:active:scale-100 bg-gray-900 shadow-lg shadow-gray-900/20">
-        滴一下
-      </button>
     </div>
 
     <!-- Loading 态 -->
@@ -532,50 +524,48 @@
     const hint = $('hint');
     let currentCategory = 'all';
 
+    const VISIBLE_COUNT = 3;
+
     function renderSamples() {
-      const filtered = currentCategory === 'all' 
-        ? SAMPLES 
-        : SAMPLES.filter(s => s.result.category === currentCategory);
-      
-      sampleList.innerHTML = filtered.map((s, i) => {
-        const cfg = CATEGORY_CONFIG[s.result.category];
+      const filtered = SAMPLES.map((s, i) => ({ s, idx: i }));
+
+      const showAll = sampleList.dataset.showAll === '1';
+      const displayed = showAll ? filtered : filtered.slice(0, VISIBLE_COUNT);
+
+      sampleList.innerHTML = displayed.map(o => {
+        const cfg = CATEGORY_CONFIG[o.s.result.category];
         return `
-          <button class="sample-card w-full text-left p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all group" data-idx="${i}">
-            <div class="flex items-start justify-between">
-              <span class="text-sm font-medium text-gray-800 line-clamp-2 leading-relaxed group-hover:text-gray-900">${escapeHTML(s.requirement)}</span>
-              <span class="shrink-0 ml-3 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.text} ${cfg.light}">${escapeHTML(s.result.category)}</span>
-            </div>
+          <button class="sample-card w-full text-left p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all group" data-idx="${o.idx}">
+            <span class="text-sm font-medium text-gray-800 line-clamp-2 leading-relaxed group-hover:text-gray-900">${escapeHTML(o.s.requirement)}</span>
             <div class="flex items-center gap-1.5 mt-2">
               <div class="w-1 h-1 rounded-full ${cfg.dot}"></div>
-              <span class="text-xs text-gray-400">${escapeHTML(s.result.examples[0]?.split('：')[0] || '')}</span>
+              <span class="text-xs text-gray-400">${escapeHTML(o.s.result.examples[0]?.split('：')[0] || '')}</span>
             </div>
           </button>
         `;
       }).join('');
+
+      if (filtered.length > VISIBLE_COUNT && !showAll) {
+        sampleList.innerHTML += `
+          <button id="showMoreBtn" class="w-full py-3 rounded-2xl text-sm text-gray-500 border border-dashed border-gray-300 hover:border-gray-400 hover:text-gray-600 transition-all">
+            查看更多（${filtered.length - VISIBLE_COUNT}）
+          </button>
+        `;
+        $('showMoreBtn')?.addEventListener('click', () => {
+          sampleList.dataset.showAll = '1';
+          renderSamples();
+        });
+      }
 
       sampleList.querySelectorAll('.sample-card').forEach(btn => {
         btn.addEventListener('click', () => {
           const idx = parseInt(btn.dataset.idx);
           textarea.value = SAMPLES[idx].requirement;
           textarea.dispatchEvent(new Event('input'));
-          setTimeout(() => analyze(true), 200);
+          submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
       });
     }
-
-    // 分类切换
-    document.querySelectorAll('.category-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.category-tab').forEach(t => {
-          t.classList.remove('active', 'bg-gray-900', 'text-white');
-          t.classList.add('bg-white', 'text-gray-600', 'border', 'border-gray-200');
-        });
-        tab.classList.remove('bg-white', 'text-gray-600', 'border', 'border-gray-200');
-        tab.classList.add('active', 'bg-gray-900', 'text-white');
-        currentCategory = tab.dataset.category;
-        renderSamples();
-      });
-    });
 
     // 初始渲染
     renderSamples();
@@ -691,6 +681,15 @@
 
       views.result.innerHTML = `
         <div class="space-y-5 pb-8">
+          <div class="flex items-center -mx-2">
+            <button id="resultBackBtn" class="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 transition-colors">
+              <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <span class="text-sm font-medium text-gray-700 ml-1">检测结果</span>
+          </div>
+
           <div class="${cfg.light} rounded-3xl p-6 text-center fade-in">
             <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">建议实现方式</div>
             <div class="text-2xl font-bold ${cfg.text}">${escapeHTML(data.category)}</div>
@@ -743,6 +742,10 @@
           </button>
         </div>
       `;
+
+      $('resultBackBtn').addEventListener('click', () => {
+        showView('input');
+      });
 
       $('retryBtn2').addEventListener('click', () => {
         textarea.value = '';
@@ -834,6 +837,15 @@
     function renderNoMatch(originalReq) {
       views.result.innerHTML = `
         <div class="space-y-5 pb-8 fade-in">
+          <div class="flex items-center -mx-2">
+            <button id="resultBackBtn2" class="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 transition-colors">
+              <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <span class="text-sm font-medium text-gray-700 ml-1">检测结果</span>
+          </div>
+
           <div class="bg-gray-50 rounded-3xl p-8 text-center">
             <div class="text-4xl mb-4">🤔</div>
             <div class="text-lg font-semibold text-gray-700">这条需求没匹配到样例</div>
@@ -874,8 +886,13 @@
           const idx = parseInt(btn.dataset.idx);
           textarea.value = SAMPLES[idx].requirement;
           textarea.dispatchEvent(new Event('input'));
-          setTimeout(() => analyze(true), 200);
+          showView('input');
+          submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
+      });
+
+      $('resultBackBtn2').addEventListener('click', () => {
+        showView('input');
       });
 
       $('retryBtn3').addEventListener('click', () => {
