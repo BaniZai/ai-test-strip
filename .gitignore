@@ -4,4 +4,13 @@ dist/
 .DS_Store
 server/
 src/
+demo/
 demo-server.mjs
+.trae/
+package-lock.json
+package.json
+pages-config.json
+postcss.config.js
+tailwind.config.js
+tsconfig.json
+vite.config.ts
