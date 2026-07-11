@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f9fafb" />
+  <title>AI试纸 · Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['-apple-system', 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', 'sans-serif'] },
+          colors: {
+            ios: { blue: '#007AFF', green: '#34C759', orange: '#FF9500', purple: '#5856D6' },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    body { font-family: -apple-system, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', sans-serif; -webkit-font-smoothing: antialiased; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); min-height: 100vh; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    .fade-in-delay-1 { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s both; }
+    .fade-in-delay-2 { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both; }
+    textarea { -webkit-appearance: none; resize: none; }
+    .glass-card { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.5); }
+    .sample-chip { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+    .sample-chip:active { transform: scale(0.96); }
+    .btn-active { transform: scale(0.98); }
+    .gradient-text { background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="max-w-[430px] mx-auto min-h-screen px-6 py-8 flex flex-col" id="app">
+
+    <!-- 引导页 -->
+    <div id="introView" class="flex-1 flex flex-col justify-center items-center text-center fade-in">
+      <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-ios-blue to-ios-purple flex items-center justify-center shadow-xl shadow-blue-500/30 mb-8">
+        <svg viewBox="0 0 24 24" class="w-10 h-10 text-white" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="3" width="15" height="13"></rect>
+          <path d="M16 8v5a6 6 0 0 0 6 6h0a6 6 0 0 0 0-12h-0a6 6 0 0 0-6 6"></path>
+          <circle cx="5.5" cy="18.5" r="2.5"></circle>
+          <circle cx="18.5" cy="18.5" r="2.5"></circle>
+        </svg>
+      </div>
+      <h1 class="text-3xl font-bold text-gray-900 mb-3">AI试纸</h1>
+      <p class="text-gray-500 text-sm max-w-[280px] leading-relaxed mb-8">
+        测测你的需求该用什么实现，告别"AI万能论"，选对技术方案
+      </p>
+      <div class="grid grid-cols-2 gap-3 w-full max-w-[280px] mb-8">
+        <div class="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-100">
+          <div class="text-2xl font-bold text-ios-green mb-1">4档</div>
+          <div class="text-xs text-gray-400">技术分类</div>
+        </div>
+        <div class="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-gray-100">
+          <div class="text-2xl font-bold text-ios-blue mb-1">20+</div>
+          <div class="text-xs text-gray-400">行业场景</div>
+        </div>
+      </div>
+      <button id="startBtn" class="w-full max-w-[280px] py-4 rounded-2xl bg-gray-900 text-white font-semibold shadow-lg shadow-gray-900/20 active:scale-[0.98] transition-all">
+        开始测试
+      </button>
+    </div>
+
+    <!-- 输入态 -->
+    <div id="inputView" class="flex-1 flex flex-col hidden">
+      <!-- 顶部返回栏 -->
+      <div class="flex items-center -mx-2 mb-6">
+        <button id="backBtn" class="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 transition-colors">
+          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <span class="text-sm font-medium text-gray-700 ml-1">描述你的需求</span>
+      </div>
+
+      <div class="flex-1 flex flex-col">
+        <!-- 输入卡片 -->
+        <div class="glass-card rounded-3xl p-6 shadow-lg shadow-gray-200/50">
+          <textarea id="requirement" rows="4"
+            placeholder="描述你的需求..."
+            class="w-full text-base bg-transparent outline-none placeholder-gray-300 text-gray-800 leading-relaxed"></textarea>
+          <div id="hint" class="text-xs text-gray-400 mt-2 h-4"></div>
+        </div>
+
+        <!-- 预置样例：分类标签式 -->
+        <div class="mt-8">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">场景样例</span>
+            <span class="text-xs text-gray-400">点击快速体验</span>
+          </div>
+          
+          <!-- 分类导航 -->
+          <div class="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+            <button class="category-tab active px-4 py-2 rounded-full text-xs font-medium bg-gray-900 text-white whitespace-nowrap transition-all" data-category="all">全部</button>
+            <button class="category-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-gray-600 border border-gray-200 whitespace-nowrap transition-all" data-category="规则条件">规则条件</button>
+            <button class="category-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-gray-600 border border-gray-200 whitespace-nowrap transition-all" data-category="工作流">工作流</button>
+            <button class="category-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-gray-600 border border-gray-200 whitespace-nowrap transition-all" data-category="小模型/机器学习">小模型</button>
+            <button class="category-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-gray-600 border border-gray-200 whitespace-nowrap transition-all" data-category="AI/大模型">AI大模型</button>
+          </div>
+
+          <!-- 样例列表 -->
+          <div id="sampleList" class="grid grid-cols-1 gap-3"></div>
+        </div>
+      </div>
+
+      <button id="submitBtn" disabled
+        class="w-full mt-6 py-4 rounded-2xl text-white text-base font-semibold transition-all active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:active:scale-100 bg-gray-900 shadow-lg shadow-gray-900/20">
+        滴一下
+      </button>
+    </div>
+
+    <!-- Loading 态 -->
+    <div id="loadingView" class="hidden flex-1 flex flex-col items-center justify-center">
+      <div class="relative">
+        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-ios-blue to-ios-purple animate-pulse"></div>
+        <div class="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-br from-ios-blue to-ios-purple animate-ping opacity-30"></div>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="1" y="3" width="15" height="13"></rect>
+            <path d="M16 8v5a6 6 0 0 0 6 6h0a6 6 0 0 0 0-12h-0a6 6 0 0 0-6 6"></path>
+          </svg>
+        </div>
+      </div>
+      <p class="text-gray-500 mt-6 text-sm font-medium">试纸反应中…</p>
+    </div>
+
+    <!-- 结果态 -->
+    <div id="resultView" class="hidden flex-1 overflow-y-auto -mx-2 px-2"></div>
+  </div>
+
+  <script>
+    // ====== 预置样例数据（覆盖各行各业） ======
+    const SAMPLES = [
+      // ===== 规则条件档 =====
+      {
+        requirement: '金额超过50万的订单需要二级领导审批',
+        result: {
+          category: '规则条件',
+          reason: '典型的阈值判断：金额 > 50万 → 触发审批。逻辑用一个 if 条件就能完整表达，不需要复杂模型。',
+          antiReason: '用 AI 反而更贵、更不稳定、更难审计。规则一旦确定就很少变化，用 AI 没有收益。',
+          examples: ['金融：金额>50万需二级审批', '零售：库存低于安全线自动预警', '风控：黑名单用户自动拦截'],
+          knowledgeCards: [
+            { title: '规则引擎', description: '把业务规则从代码里抽出来集中管理，非技术人员也能改规则，不用每次都要研发排期。' },
+            { title: '为什么不用 AI？', description: '规则明确、变化少的场景，AI 的"智能"是多余的。就像你不会用导航去找自家冰箱的位置。' },
+          ],
+        },
+      },
+      {
+        requirement: '用户信用分低于600分自动拒绝贷款申请',
+        result: {
+          category: '规则条件',
+          reason: '这是银行风控的经典规则：信用分 < 600 → 拒绝。条件清晰、判断明确，用规则引擎即可。',
+          antiReason: 'AI 判断贷款审批无法解释原因，监管要求"可解释"。规则引擎每一步都可追溯，符合合规要求。',
+          examples: ['银行：信用分<600拒贷', '保险：年龄>65岁加费', '电商：新用户首单限额'],
+          knowledgeCards: [
+            { title: '可解释性', description: '金融监管要求每个拒贷决定都能说明原因。AI 是"黑盒"，规则是"白盒"，监管更爱白盒。' },
+            { title: '规则引擎 vs AI', description: '规则引擎像红绿灯：简单、确定、人人能懂。AI 像老司机：灵活但说不清为什么这么开。场景选对才有效。' },
+          ],
+        },
+      },
+      {
+        requirement: '工厂设备温度超过80度自动报警停机',
+        result: {
+          category: '规则条件',
+          reason: '工业安全的典型阈值监控：温度 > 80°C → 报警。固定阈值、即时触发，规则条件即可。',
+          antiReason: 'AI 预测需要历史数据训练，而安全报警要求毫秒级响应、零误判。规则比 AI 更快、更可靠。',
+          examples: ['制造：设备温度超限停机', '能源：电压异常断电保护', '医疗：体温>39°C标记高热'],
+          knowledgeCards: [
+            { title: '工业物联网', description: '传感器实时采集设备数据，规则引擎即时判断。听起来高大上，本质就是"温度计+报警器"的数字化版。' },
+            { title: '阈值管理', description: '不同设备、不同工况阈值不同。好的规则系统支持动态调整阈值，适应季节、负载变化。' },
+          ],
+        },
+      },
+      // ===== 工作流档 =====
+      {
+        requirement: '新员工入职流程：Offer审批→建档→开通账号→领设备→培训',
+        result: {
+          category: '工作流',
+          reason: '多个步骤按固定顺序执行，每步有明确前后依赖，且有人工节点。这是工作流的典型特征。',
+          antiReason: '用 AI 编排固定流程是杀鸡用牛刀。工作流引擎能保证可追溯、可监控、可回退，AI 做不到。',
+          examples: ['HR：入职流程5步走', '政务：审批一窗受理', '金融：贷款审批多级流转'],
+          knowledgeCards: [
+            { title: 'DAG（有向无环图）', description: '工作流的底层模型，节点是任务，边是依赖。本质就是"先做A再做B"的图。' },
+            { title: 'BPMN 2.0', description: '业务流程建模标准，画出来的流程图产品经理和开发都能看懂，是流程界的"普通话"。' },
+          ],
+        },
+      },
+      {
+        requirement: '每天晚上10点自动汇总当天销售数据生成报表发邮件',
+        result: {
+          category: '工作流',
+          reason: '定时触发→数据汇总→生成报表→发送邮件，多步骤按固定顺序执行，属于定时工作流（DAG）。',
+          antiReason: '用 AI 做定时任务和数据汇总完全没必要。Airflow、n8n 等工具稳定、可监控、可重试，成本远低于 AI。',
+          examples: ['零售：每日销售报表', '财务：月末自动对账', '运营：每周用户增长汇总'],
+          knowledgeCards: [
+            { title: 'ETL', description: 'Extract-Transform-Load，数据从各处抽取、清洗转换、加载到目标库。数据工程师的日常。' },
+            { title: 'Airflow', description: 'Airbnb 开源的工作流调度工具，用 Python 写 DAG，定时跑、失败重试、可视化监控一条龙。数据团队标配。' },
+          ],
+        },
+      },
+      {
+        requirement: '客户投诉工单自动流转：客服→技术→主管，每级48小时未处理自动升级',
+        result: {
+          category: '工作流',
+          reason: '工单按条件流转到不同角色，且有超时升级机制。这是带条件分支和定时器的工作流。',
+          antiReason: 'AI 无法保证工单流转的可追溯性和 SLA 合规。工作流引擎原生支持超时升级、回退、会签，AI 做不到。',
+          examples: ['客服：投诉工单多级流转', '政务：信访件限时办结', 'IT：故障工单自动派单'],
+          knowledgeCards: [
+            { title: 'SLA（服务等级协议）', description: '承诺多久响应、多久解决。工作流引擎能自动监控 SLA，超时自动升级，是客服中心的生命线。' },
+            { title: '会签与或签', description: '会签=多人都要同意；或签=任一人同意即可。工作流里的"投票机制"，审批场景天天用。' },
+          ],
+        },
+      },
+      // ===== 小模型/机器学习档 =====
+      {
+        requirement: '根据历史销量预测下个月各商品的销售量',
+        result: {
+          category: '小模型/机器学习',
+          reason: '对结构化数据（历史销量）做数值预测，目标明确、数据结构化、样本充足。这是机器学习的回归任务。',
+          antiReason: '用大模型做销量预测就像让文科生解微积分。XGBoost、LSTM 等专用模型更准、更快、成本仅为大模型的千分之一。',
+          examples: ['零售：商品销量预测', '能源：电力负荷预测', '农业：作物产量预估'],
+          knowledgeCards: [
+            { title: '监督学习', description: '给模型一堆"输入-输出"对，让它学会从输入推输出。就像做真题对答案，做多了就摸到规律了。' },
+            { title: '特征工程', description: '把原始数据加工成模型能理解的信号。比如从"日期"提取"是否周末""是否节假日"，模型就能抓住周期规律。' },
+          ],
+        },
+      },
+      {
+        requirement: '识别工厂流水线产品表面的划痕和瑕疵',
+        result: {
+          category: '小模型/机器学习',
+          reason: '图像分类任务，类别明确（合格/瑕疵）、样本充足、目标函数清晰。用 CNN 即可解决，是工业 AI 的经典场景。',
+          antiReason: '用大模型做质检成本高、延迟大。专用的视觉小模型（如 ResNet、YOLO）在准确率、速度、成本上全面碾压。',
+          examples: ['制造：产品表面瑕疵检测', '医疗：X光片结节识别', '农业：病虫害图像识别'],
+          knowledgeCards: [
+            { title: 'CNN（卷积神经网络）', description: '专门处理图像的神经网络，通过卷积核"扫描"图像特征。像人眼从局部到整体识别物体的过程。' },
+            { title: '迁移学习', description: '拿别人训练好的模型"微调"成自己的任务。就像转行不用从小学重读，只学新领域的知识就行。' },
+          ],
+        },
+      },
+      {
+        requirement: '预测哪些用户下个月可能流失，提前做挽留',
+        result: {
+          category: '小模型/机器学习',
+          reason: '基于用户行为数据（登录频率、使用时长、投诉次数）做二分类预测，目标明确、特征结构化。这是 Churn 预测的经典场景。',
+          antiReason: '大模型无法处理百万级用户的批量预测，且每次调用成本高。小模型一次训练即可批量预测，成本可忽略。',
+          examples: ['电信：用户流失预测', 'SaaS：订阅续约预测', '银行：信用卡销卡预测'],
+          knowledgeCards: [
+            { title: 'Churn（流失）', description: '用户停止使用产品或服务。Churn 率是订阅制业务的生死线，降低 1% 流失往往比拉新 1% 更值钱。' },
+            { title: '特征重要性', description: '模型告诉你哪些因素最影响流失。比如"30天未登录"比"性别"重要100倍，运营就知道该重点做什么。' },
+          ],
+        },
+      },
+      {
+        requirement: '给用户推荐他可能感兴趣的商品',
+        result: {
+          category: '小模型/机器学习',
+          reason: '基于用户历史行为和商品特征做匹配预测（点击率、购买率），是推荐系统的召回+排序任务，属于机器学习经典领域。',
+          antiReason: '大模型无法支撑亿级商品的实时推荐。专用推荐模型（如双塔、DIN）能在 50ms 内从百万商品中筛出 Top10。',
+          examples: ['电商：商品个性化推荐', '视频：内容信息流推荐', '音乐：每日推荐歌单'],
+          knowledgeCards: [
+            { title: '召回+排序', description: '推荐两步走：先从百万商品里粗筛几百个（召回），再精排选 Top10。像高考先过线再录取。' },
+            { title: '协同过滤', description: '"喜欢相似商品的人会喜欢相似的东西"。最早的推荐算法，原理简单但至今有效，亚马逊靠它起家。' },
+          ],
+        },
+      },
+      // ===== AI/大模型档 =====
+      {
+        requirement: '让系统自动理解用户提问并用自然语言回复',
+        result: {
+          category: 'AI/大模型',
+          reason: '需求核心是对非结构化文本的语义理解和自然语言生成。这是大模型（LLM）的主场——开放域对话、语义理解、内容生成。',
+          antiReason: '没有更高档了，这就是最高档。但如果需求可拆解为固定模式，下沉到工作流或规则会更稳定、更可控。',
+          examples: ['客服：智能问答机器人', '政务：政策咨询助手', '教育：学科答疑辅导'],
+          knowledgeCards: [
+            { title: '大模型不是万能的', description: 'LLM 擅长"理解"和"生成"，但不擅长精确计算、实时数据、确定性逻辑。让 GPT 算税率不如一段 10 行代码。' },
+            { title: 'RAG（检索增强生成）', description: '先从知识库检索相关资料，再让大模型基于资料回答。相当于开卷考试，比让模型硬背靠谱得多。' },
+          ],
+        },
+      },
+      {
+        requirement: '把长长的合同自动摘要成核心条款清单',
+        result: {
+          category: 'AI/大模型',
+          reason: '需要对长文本做语义理解+内容提取+自然语言生成。这是大模型的典型任务——文档摘要。',
+          antiReason: '传统 NLP 摘要只能做"抽取式"（拼句子），大模型能做"生成式"（重新组织语言），质量天差地别。',
+          examples: ['法务：合同核心条款摘要', '医疗：病历要点提取', '媒体：长文一句话总结'],
+          knowledgeCards: [
+            { title: '抽取式 vs 生成式摘要', description: '抽取式像剪报——从原文剪句子拼起来；生成式像读后感——理解后用自己的话重写。后者更自然但需要大模型。' },
+            { title: '长文本处理', description: '大模型有上下文长度限制（如 4K、32K、128K token）。超长合同要分段处理再合并，是工程难点。' },
+          ],
+        },
+      },
+      {
+        requirement: '分析用户评论的情感倾向，判断是好评还是差评',
+        result: {
+          category: 'AI/大模型',
+          reason: '需要对非结构化文本做语义理解，判断情感极性。大模型能理解反讽、隐喻等复杂语义，传统词典法做不到。',
+          antiReason: '如果是简单"好评/差评"分类，传统机器学习也能做。但涉及反讽、混合情感时，大模型明显更强。',
+          examples: ['电商：商品评论情感分析', '餐饮：口碑正负面监测', '品牌：社交媒体舆情监控'],
+          knowledgeCards: [
+            { title: '情感分析的坑', description: '"这手机续航真不错，一天充三次"——词典法看到"不错"判好评，大模型能识别这是反讽。语义理解是分水岭。' },
+            { title: 'Aspect-based 情感分析', description: '不只是判断整条评论正负面，而是细分到"续航好评、拍照差评、价格一般"。颗粒度更细，更有商业价值。' },
+          ],
+        },
+      },
+      {
+        requirement: '把产品说明自动翻译成英日韩三种语言',
+        result: {
+          category: 'AI/大模型',
+          reason: '自然语言翻译涉及深层的语义理解和生成，是大模型（尤其多语言模型）的强项。传统机器翻译在长句、专业术语上明显落后。',
+          antiReason: '如果只是关键词级别的对照翻译，词典即可。但产品说明需要语境理解，大模型质量明显更高。',
+          examples: ['外贸：产品多语言翻译', '游戏：剧情本地化', '内容：字幕实时翻译'],
+          knowledgeCards: [
+            { title: 'NMT（神经机器翻译）', description: '基于深度学习的翻译，已取代传统的统计翻译。Google 翻译、DeepL 都用这套，质量飞跃的关键。' },
+            { title: '低资源语言', description: '中英翻译数据多、质量好；但小语种（如缅甸语）数据少，大模型的迁移能力让小语种翻译也能用。' },
+          ],
+        },
+      },
+      {
+        requirement: '根据用户描述的需求自动生成一段代码',
+        result: {
+          category: 'AI/大模型',
+          reason: '从自然语言描述生成代码，需要理解意图+生成结构化输出。这是大模型的标志性能力，也是编程助手的底层技术。',
+          antiReason: '没有更高档了。但要注意：大模型生成的代码需要人工 review，不能盲目信任，尤其涉及安全、性能的关键逻辑。',
+          examples: ['开发：Copilot 代码补全', '数据：Text-to-SQL 自然语言查数', '测试：自动生成测试用例'],
+          knowledgeCards: [
+            { title: 'Text-to-SQL', description: '用自然语言查数据库："查上月销量TOP10商品"→自动生成 SQL。让业务人员不用学 SQL 也能自助查数。' },
+            { title: '代码生成的边界', description: '大模型擅长"模板代码"和"常见逻辑"，但复杂算法、业务规则、性能优化仍需人工。它是助手不是替代品。' },
+          ],
+        },
+      },
+      // ===== 更多行业样例 =====
+      {
+        requirement: '医院分诊台根据患者症状描述自动推荐就诊科室',
+        result: {
+          category: 'AI/大模型',
+          reason: '患者描述是非结构化自然语言，需要语义理解+医学知识推理+生成回复。大模型能处理模糊表述，传统规则做不到。',
+          antiReason: '如果只是"发烧→内科"这种固定映射，规则就够。但患者描述千差万别，大模型能理解"我胸口闷、左臂发麻"=心内科。',
+          examples: ['医疗：智能分诊导诊', '法律：法律咨询机器人', '政务：办事指南问答'],
+          knowledgeCards: [
+            { title: '医疗大模型的边界', description: 'AI 可以建议科室，但不能下诊断。医疗领域容错率低，AI 是"导诊员"不是"医生"，边界要划清。' },
+            { title: '知识图谱+大模型', description: '大模型 + 医学知识图谱，比纯大模型更准。知识图谱防"幻觉"，大模型负责理解和表达。' },
+          ],
+        },
+      },
+      {
+        requirement: '自动识别发票上的金额、日期、税号等信息并录入系统',
+        result: {
+          category: '小模型/机器学习',
+          reason: '发票格式相对固定，信息抽取可用 OCR + 结构化识别模型完成。这是文档智能的经典任务，小模型足够。',
+          antiReason: '用大模型做发票识别成本高、速度慢。专用 OCR 模型（如 PaddleOCR）准确率更高、速度更快、成本更低。',
+          examples: ['财务：发票自动识别录入', '政务：证件信息提取', '物流：运单地址识别'],
+          knowledgeCards: [
+            { title: 'OCR（光学字符识别）', description: '把图片里的文字变成可编辑的文本。OCR 是文档数字化的第一步，银行、财税、档案行业天天用。' },
+            { title: '文档智能', description: '不只是识别文字，还要理解"哪个是金额、哪个是税号"。结合版面分析和命名实体识别，是 OCR 的升级版。' },
+          ],
+        },
+      },
+      {
+        requirement: '电网根据天气和用电历史预测明天的电力负荷',
+        result: {
+          category: '小模型/机器学习',
+          reason: '基于历史负荷+气象数据做时序预测，目标明确、数据结构化。这是能源行业的经典预测任务，LSTM/Prophet 等模型足够。',
+          antiReason: '大模型不擅长数值时序预测。专用时序模型（如 Informer、PatchTST）在精度和效率上完胜大模型。',
+          examples: ['能源：电力负荷预测', '交通：客流量预测', '水务：用水量预测'],
+          knowledgeCards: [
+            { title: '时序预测', description: '按时间顺序排列的数据做预测。核心假设是"历史会重演"。季节性、趋势性、周期性是三大关键词。' },
+            { title: '特征融合', description: '把气象、节假日、突发事件等外部因素融入时序模型，预测精度能提升 20%+。特征工程是关键。' },
+          ],
+        },
+      },
+      {
+        requirement: '物流公司每天优化配送路线，让司机少跑路',
+        result: {
+          category: '小模型/机器学习',
+          reason: '这是运筹优化问题（VRP 车辆路径规划），用运筹学算法+启发式求解器即可，属于传统 OR 领域，不是 AI。',
+          antiReason: 'AI 无法保证最优解，且无法处理大规模约束。运筹学（如 Gurobi、OR-Tools）能给出可证明的最优或近优解。',
+          examples: ['物流：配送路线优化', '航空：机组排班', '制造：车间调度排产'],
+          knowledgeCards: [
+            { title: '运筹学（OR）', description: '用数学方法求最优解的学科。物流、排班、调度都是 OR 的主场。很多人不知道，运筹学比 AI 更适合这类问题。' },
+            { title: 'NP-Hard', description: '这类问题无法穷举所有解（组合爆炸），只能用启发式找"足够好"的解。就像找对象，不可能见完所有人再选。' },
+          ],
+        },
+      },
+      {
+        requirement: '工厂设备出现故障前提前预警，避免停机损失',
+        result: {
+          category: '小模型/机器学习',
+          reason: '基于传感器时序数据做异常检测和剩余寿命预测，是预测性维护的典型场景。小模型（如 Isolation Forest、LSTM）足够。',
+          antiReason: '大模型不擅长处理高频传感器数据。专用时序模型 + 异常检测算法更准、更快、可边缘部署。',
+          examples: ['制造：设备预测性维护', '能源：风机故障预警', '交通：桥梁结构健康监测'],
+          knowledgeCards: [
+            { title: '预测性维护', description: '在设备坏掉前提前预警。每提前 1 天发现故障，工厂能省几十万停机损失。工业 AI 最有 ROI 的场景之一。' },
+            { title: '异常检测', description: '"和平时不一样"就是异常。不需要标注数据，用统计方法或无监督学习就能发现异常。简单但有效。' },
+          ],
+        },
+      },
+      {
+        requirement: '学校根据学生学习情况自动生成个性化练习题',
+        result: {
+          category: 'AI/大模型',
+          reason: '需要理解学生知识薄弱点 + 生成贴合水平的题目 + 自然语言解释。涉及语义理解和内容生成，是大模型的强项。',
+          antiReason: '如果是固定题库按规则抽取，规则即可。但"生成新题"+"个性化讲解"需要创造力，只有大模型能做。',
+          examples: ['教育：AI 个性化出题', '培训：智能学习路径', '内容：营销文案批量生成'],
+          knowledgeCards: [
+            { title: 'AIGC（AI 生成内容）', description: 'AI Generated Content，涵盖文字、图片、视频、代码。教育、营销、创意行业正在被重塑。' },
+            { title: 'Prompt Engineering', description: '怎么向 AI 提问决定了回答质量。同样的大模型，好的 Prompt 能让效果提升 10 倍。是新技能。' },
+          ],
+        },
+      },
+    ];
+
+    // ====== 工具函数 ======
+    const $ = id => document.getElementById(id);
+    const views = { intro: $('introView'), input: $('inputView'), loading: $('loadingView'), result: $('resultView') };
+
+    function showView(name) {
+      Object.entries(views).forEach(([k, el]) => {
+        if (k === name) { el.classList.remove('hidden'); el.classList.add('fade-in'); }
+        else { el.classList.add('hidden'); el.classList.remove('fade-in'); }
+      });
+    }
+
+    $('startBtn').addEventListener('click', () => showView('input'));
+    $('backBtn').addEventListener('click', () => showView('intro'));
+
+    // ====== 四档分类配置 ======
+    const CATEGORY_CONFIG = {
+      '规则条件': {
+        text: 'text-ios-green', bg: 'bg-ios-green', light: 'bg-green-50', border: 'border-green-100', dot: 'bg-ios-green',
+        path: ['梳理业务规则', '配置规则引擎', '测试验证上线'],
+        learning: {
+          analogy: '规则条件就像红绿灯：红灯停、绿灯行，条件明确、人人能懂。你不会因为今天是周二就让红灯多亮 3 秒。',
+          quiz: [
+            {
+              q: '下面哪个需求最适合用"规则条件"实现？',
+              options: ['根据用户浏览历史推荐商品', '订单金额超 1 万自动转人工审核', '把客户邮件自动翻译成英文', '识别 X 光片中的肺结节'],
+              answerIdx: 1,
+              explain: '金额阈值判断是典型的"if-else"逻辑，用规则引擎一行配置就搞定。其他三项分别需要推荐算法、NMT 翻译、CNN 图像识别。',
+            },
+            {
+              q: '为什么银行风控更倾向规则而非 AI？',
+              options: ['规则比 AI 更聪明', '监管要求每个拒贷决定可解释', 'AI 无法处理金融数据', '规则引擎免费'],
+              answerIdx: 1,
+              explain: '金融监管要求"可解释"——每个拒贷决定都要能说清原因。规则是白盒，AI 是黑盒，监管更爱白盒。',
+            },
+          ],
+        },
+      },
+      '工作流': {
+        text: 'text-ios-orange', bg: 'bg-ios-orange', light: 'bg-orange-50', border: 'border-orange-100', dot: 'bg-ios-orange',
+        path: ['绘制流程图', '搭建工作流引擎', '配置节点与路由'],
+        learning: {
+          analogy: '工作流就像菜谱：先洗菜、再切菜、最后下锅。每一步有先后顺序，跳步或乱序都会出问题。',
+          quiz: [
+            {
+              q: '下面哪个是工作流的典型特征？',
+              options: ['需要理解用户情绪', '多个步骤按固定顺序执行', '预测明天的销量', '把图片翻译成文字'],
+              answerIdx: 1,
+              explain: '工作流的核心是"步骤+顺序+依赖"。就像菜谱——先洗菜再切菜，顺序错了就乱套。',
+            },
+            {
+              q: '为什么不用 AI 来编排固定流程？',
+              options: ['AI 太贵', 'AI 无法保证可追溯和可回退', 'AI 速度不够快', 'AI 不能联网'],
+              answerIdx: 1,
+              explain: '工作流引擎原生支持流程监控、超时升级、失败回退。AI 是"概率模型"，无法保证每一步都确定执行。',
+            },
+          ],
+        },
+      },
+      '小模型/机器学习': {
+        text: 'text-ios-purple', bg: 'bg-ios-purple', light: 'bg-purple-50', border: 'border-purple-100', dot: 'bg-ios-purple',
+        path: ['数据采集清洗', '特征工程', '模型训练调优', '部署上线'],
+        learning: {
+          analogy: '小模型像专科医生：只看一类病，但看得又快又准。你不会为了测体温去找心脏外科专家。',
+          quiz: [
+            {
+              q: '预测下个月商品销量，应该用？',
+              options: ['ChatGPT 这类大模型', 'XGBoost、LSTM 等时序模型', '规则引擎', '工作流'],
+              answerIdx: 1,
+              explain: '结构化数据 + 数值预测 = 机器学习主场。专用模型比大模型准 10 倍、便宜 1000 倍。',
+            },
+            {
+              q: '什么叫"特征工程"？',
+              options: ['给模型起名字', '把原始数据加工成模型能理解的信号', '训练模型的过程', '部署模型到服务器'],
+              answerIdx: 1,
+              explain: '比如从"日期"提取"是否周末""是否节假日"——这些就是特征。特征决定模型上限，算法只是逼近这个上限。',
+            },
+          ],
+        },
+      },
+      'AI/大模型': {
+        text: 'text-ios-blue', bg: 'bg-ios-blue', light: 'bg-blue-50', border: 'border-blue-100', dot: 'bg-ios-blue',
+        path: ['需求拆解', '选择模型', 'Prompt 调优', 'RAG 增强', '上线监控'],
+        learning: {
+          analogy: '大模型像通才作家：什么都能写一点，但你不会让他去算税务报表。让 GPT 算税率，不如一段 10 行代码。',
+          quiz: [
+            {
+              q: '下面哪个任务最适合用大模型？',
+              options: ['根据历史数据预测销量', '把长合同摘要成核心条款', '订单金额超 1 万转人工', '设备温度超 80 度报警'],
+              answerIdx: 1,
+              explain: '合同摘要需要"读懂长文本 + 重新组织语言"，这是大模型的主场。其他三项分别归小模型、规则、规则。',
+            },
+            {
+              q: '什么是 RAG？',
+              options: ['一种新型数据库', '先检索知识库再让大模型基于资料回答', '一种模型训练方法', '大模型的另一个名字'],
+              answerIdx: 1,
+              explain: 'RAG = 检索增强生成。相当于开卷考试——先从知识库找相关资料，再让大模型基于资料回答，比让它硬背靠谱得多。',
+            },
+          ],
+        },
+      },
+    };
+
+    function escapeHTML(s) {
+      const div = document.createElement('div');
+      div.textContent = String(s ?? '');
+      return div.innerHTML;
+    }
+
+    // ====== 渲染预置样例（分类标签式） ======
+    const sampleList = $('sampleList');
+    const textarea = $('requirement');
+    const submitBtn = $('submitBtn');
+    const hint = $('hint');
+    let currentCategory = 'all';
+
+    function renderSamples() {
+      const filtered = currentCategory === 'all' 
+        ? SAMPLES 
+        : SAMPLES.filter(s => s.result.category === currentCategory);
+      
+      sampleList.innerHTML = filtered.map((s, i) => {
+        const cfg = CATEGORY_CONFIG[s.result.category];
+        return `
+          <button class="sample-card w-full text-left p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all group" data-idx="${i}">
+            <div class="flex items-start justify-between">
+              <span class="text-sm font-medium text-gray-800 line-clamp-2 leading-relaxed group-hover:text-gray-900">${escapeHTML(s.requirement)}</span>
+              <span class="shrink-0 ml-3 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.text} ${cfg.light}">${escapeHTML(s.result.category)}</span>
+            </div>
+            <div class="flex items-center gap-1.5 mt-2">
+              <div class="w-1 h-1 rounded-full ${cfg.dot}"></div>
+              <span class="text-xs text-gray-400">${escapeHTML(s.result.examples[0]?.split('：')[0] || '')}</span>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      sampleList.querySelectorAll('.sample-card').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx);
+          textarea.value = SAMPLES[idx].requirement;
+          textarea.dispatchEvent(new Event('input'));
+          setTimeout(() => analyze(true), 200);
+        });
+      });
+    }
+
+    // 分类切换
+    document.querySelectorAll('.category-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.category-tab').forEach(t => {
+          t.classList.remove('active', 'bg-gray-900', 'text-white');
+          t.classList.add('bg-white', 'text-gray-600', 'border', 'border-gray-200');
+        });
+        tab.classList.remove('bg-white', 'text-gray-600', 'border', 'border-gray-200');
+        tab.classList.add('active', 'bg-gray-900', 'text-white');
+        currentCategory = tab.dataset.category;
+        renderSamples();
+      });
+    });
+
+    // 初始渲染
+    renderSamples();
+
+    // ====== 输入校验 ======
+    textarea.addEventListener('input', () => {
+      const len = textarea.value.trim().length;
+      if (len === 0) { submitBtn.disabled = true; hint.textContent = ''; }
+      else if (len < 5) { submitBtn.disabled = true; hint.textContent = '再多说一句吧'; }
+      else { submitBtn.disabled = false; hint.textContent = ''; }
+    });
+
+    submitBtn.addEventListener('click', () => analyze(false));
+
+    // ====== 匹配逻辑 ======
+    function matchSample(req) {
+      // 精确匹配
+      const exact = SAMPLES.find(s => s.requirement === req.trim());
+      if (exact) return exact.result;
+
+      // 关键词模糊匹配
+      const keywords = {
+        '规则条件': ['审批', '阈值', '规则', '条件', '黑名单', '预警', '过滤', '金额'],
+        '工作流': ['流程', '步骤', '流水线', '定时', '汇总', '报表', '流转', '入职'],
+        '小模型/机器学习': ['预测', '销量', '分类', '评分', '推荐', 'churn', '流失', '图像识别'],
+        'AI/大模型': ['理解', '对话', '生成', '摘要', '情感', '客服', '写作', '多模态'],
+      };
+
+      const lowerReq = req.toLowerCase();
+      let bestMatch = null;
+      let bestScore = 0;
+
+      for (const [cat, kws] of Object.entries(keywords)) {
+        let score = 0;
+        for (const kw of kws) {
+          if (lowerReq.includes(kw.toLowerCase())) score++;
+        }
+        if (score > bestScore) { bestScore = score; bestMatch = cat; }
+      }
+
+      if (bestScore === 0) return null;
+
+      // 找到匹配档位的第一个样例作为模板
+      const template = SAMPLES.find(s => s.result.category === bestMatch);
+      if (template) {
+        return {
+          category: bestMatch,
+          reason: `根据你的需求描述，识别到"${bestMatch}"相关的特征关键词。${template.result.reason}`,
+          antiReason: template.result.antiReason,
+          examples: template.result.examples,
+          knowledgeCards: template.result.knowledgeCards,
+          isAmbiguous: true,
+        };
+      }
+      return null;
+    }
+
+    function analyze(isSample) {
+      const requirement = textarea.value.trim();
+      if (requirement.length < 5) return;
+
+      showView('loading');
+
+      // 模拟"思考"延迟，让 demo 有仪式感
+      const delay = isSample ? 800 : 600;
+      setTimeout(() => {
+        const result = matchSample(requirement);
+        if (result) {
+          renderResult(result, requirement);
+          showView('result');
+        } else {
+          renderNoMatch(requirement);
+          showView('result');
+        }
+      }, delay);
+    }
+
+    // ====== 渲染结果（提升设计感） ======
+    function renderResult(data, originalReq) {
+      const cfg = CATEGORY_CONFIG[data.category] || CATEGORY_CONFIG['AI/大模型'];
+
+      const cardsHTML = (data.knowledgeCards || []).map((c, i) => `
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 fade-in-delay-${i + 1}">
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl ${cfg.light} flex items-center justify-center shrink-0">
+              <span class="text-sm">${['💡', '📚'][i] || '💡'}</span>
+            </div>
+            <div>
+              <div class="font-semibold text-gray-900">${escapeHTML(c.title)}</div>
+              <div class="text-sm text-gray-500 mt-1 leading-relaxed">${escapeHTML(c.description || '')}</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      const examplesHTML = (data.examples || []).map(e => {
+        const [domain, scene] = e.split('：');
+        return `
+          <div class="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+            <div class="text-xs font-medium px-2 py-1 rounded-md bg-white border border-gray-200 text-gray-600">${escapeHTML(domain)}</div>
+            <span class="text-sm text-gray-700 flex-1">${escapeHTML(scene || domain)}</span>
+          </div>
+        `;
+      }).join('');
+
+      const pathHTML = (cfg.path || []).map((step, i) => `
+        <div class="flex items-center gap-3">
+          <div class="w-5 h-5 rounded-full ${cfg.bg} flex items-center justify-center text-white text-xs font-bold shrink-0">${i + 1}</div>
+          <span class="text-sm text-gray-700">${escapeHTML(step)}</span>
+          ${i < cfg.path.length - 1 ? '<div class="w-2 h-0.5 bg-gray-200 ml-[-4px]"></div>' : ''}
+        </div>
+      `).join('');
+
+      views.result.innerHTML = `
+        <div class="space-y-5 pb-8">
+          <div class="${cfg.light} rounded-3xl p-6 text-center fade-in">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">建议实现方式</div>
+            <div class="text-2xl font-bold ${cfg.text}">${escapeHTML(data.category)}</div>
+            ${data.isAmbiguous ? '<div class="text-xs text-gray-400 mt-2">基于关键词匹配，仅供参考</div>' : ''}
+          </div>
+
+          <div class="bg-white/60 rounded-2xl p-4 border border-gray-100 backdrop-blur-sm">
+            <div class="text-xs text-gray-400 font-medium mb-1">你的需求</div>
+            <div class="text-sm text-gray-700 leading-relaxed">${escapeHTML(originalReq)}</div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-5 shadow-sm border ${cfg.border} fade-in-delay-1">
+            <div class="flex items-center gap-2 mb-2.5">
+              <div class="w-1 h-4 ${cfg.bg} rounded-full"></div>
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">为什么是这一档</span>
+            </div>
+            <div class="text-gray-700 leading-relaxed text-sm">${escapeHTML(data.reason || '')}</div>
+          </div>
+
+          <div class="bg-gray-900 rounded-3xl p-5 fade-in-delay-2">
+            <div class="flex items-center gap-2 mb-2.5">
+              <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">💡 为什么不用更高档</span>
+            </div>
+            <div class="text-gray-300 leading-relaxed text-sm">${escapeHTML(data.antiReason || '')}</div>
+          </div>
+
+          ${examplesHTML ? `
+          <div class="fade-in-delay-2">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">典型场景</div>
+            <div class="space-y-2">${examplesHTML}</div>
+          </div>` : ''}
+
+          <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 fade-in-delay-2">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">🚀 实现路径</span>
+            </div>
+            <div class="space-y-3">${pathHTML}</div>
+          </div>
+
+          ${cardsHTML ? `
+          <div>
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">聊到这 · 顺道学点</div>
+            <div class="space-y-3">${cardsHTML}</div>
+          </div>` : ''}
+
+          ${renderLearningSection(cfg)}
+
+          <button id="retryBtn2" class="w-full py-4 rounded-2xl bg-gray-900 text-white text-base font-semibold shadow-md shadow-gray-900/10 active:scale-[0.98] mt-2">
+            再试一次
+          </button>
+        </div>
+      `;
+
+      $('retryBtn2').addEventListener('click', () => {
+        textarea.value = '';
+        submitBtn.disabled = true;
+        hint.textContent = '';
+        showView('input');
+      });
+
+      // 绑定 quiz 交互（事件委托）
+      views.result.querySelectorAll('.quiz-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const quiz = btn.closest('.quiz-card');
+          if (quiz.dataset.answered === '1') return;
+          const selectedIdx = +btn.dataset.idx;
+          const correctIdx = +quiz.dataset.correct;
+          const explain = quiz.querySelector('.quiz-explain');
+          const options = quiz.querySelectorAll('.quiz-option');
+
+          if (selectedIdx === correctIdx) {
+            btn.classList.add('bg-green-50', 'border-ios-green', 'text-ios-green');
+            btn.querySelector('.quiz-mark').textContent = '✓';
+            btn.querySelector('.quiz-mark').classList.add('text-ios-green');
+          } else {
+            btn.classList.add('bg-red-50', 'border-red-300', 'text-red-600');
+            btn.querySelector('.quiz-mark').textContent = '✗';
+            btn.querySelector('.quiz-mark').classList.add('text-red-500');
+            // 高亮正确答案
+            options[correctIdx].classList.add('bg-green-50', 'border-ios-green', 'text-ios-green');
+            options[correctIdx].querySelector('.quiz-mark').textContent = '✓';
+            options[correctIdx].querySelector('.quiz-mark').classList.add('text-ios-green');
+          }
+
+          explain.classList.remove('hidden');
+          quiz.dataset.answered = '1';
+        });
+      });
+    }
+
+    // 渲染学习区块：打个比方 + 小试一下
+    function renderLearningSection(cfg) {
+      const learning = cfg.learning;
+      if (!learning) return '';
+
+      const quizHTML = (learning.quiz || []).map((item, i) => {
+        const optionsHTML = item.options.map((opt, idx) => `
+          <button class="quiz-option w-full text-left px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 transition-all active:scale-[0.99] hover:border-gray-300 flex items-center justify-between" data-idx="${idx}">
+            <span>${escapeHTML(opt)}</span>
+            <span class="quiz-mark w-5 h-5 flex items-center justify-center text-sm font-bold"></span>
+          </button>
+        `).join('');
+
+        return `
+          <div class="quiz-card bg-white rounded-2xl p-5 border border-gray-100 shadow-sm" data-correct="${item.answerIdx}" data-answered="0">
+            <div class="flex items-start gap-2 mb-3">
+              <span class="text-xs font-bold ${cfg.text} ${cfg.light} px-2 py-0.5 rounded-md">Q${i + 1}</span>
+              <div class="text-sm font-medium text-gray-800 leading-relaxed flex-1">${escapeHTML(item.q)}</div>
+            </div>
+            <div class="space-y-2">${optionsHTML}</div>
+            <div class="quiz-explain hidden mt-3 p-3 rounded-xl ${cfg.light} text-xs text-gray-600 leading-relaxed">
+              <span class="font-semibold ${cfg.text}">解析：</span>${escapeHTML(item.explain)}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="space-y-3 fade-in-delay-2">
+          <!-- 打个比方 -->
+          <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-5 text-white">
+            <div class="flex items-center gap-2 mb-2.5">
+              <span class="text-sm">🎯</span>
+              <span class="text-xs font-semibold text-gray-300 uppercase tracking-wider">打个比方</span>
+            </div>
+            <div class="text-sm leading-relaxed text-gray-100">${escapeHTML(learning.analogy)}</div>
+          </div>
+
+          <!-- 小试一下 -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">✨ 小试一下</span>
+              <span class="text-xs text-gray-400">点击选项即出答案</span>
+            </div>
+            <div class="space-y-3">${quizHTML}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderNoMatch(originalReq) {
+      views.result.innerHTML = `
+        <div class="space-y-5 pb-8 fade-in">
+          <div class="bg-gray-50 rounded-3xl p-8 text-center">
+            <div class="text-4xl mb-4">🤔</div>
+            <div class="text-lg font-semibold text-gray-700">这条需求没匹配到样例</div>
+            <div class="text-sm text-gray-500 mt-2">试试下方的预置样例</div>
+          </div>
+
+          <div class="bg-white/60 rounded-2xl p-4 border border-gray-100 backdrop-blur-sm">
+            <div class="text-xs text-gray-400 font-medium mb-1">你的需求</div>
+            <div class="text-sm text-gray-700">${escapeHTML(originalReq)}</div>
+          </div>
+
+          <div>
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">热门场景</div>
+            <div class="grid grid-cols-2 gap-2">
+              ${SAMPLES.slice(0, 6).map((s, i) => {
+                const cfg = CATEGORY_CONFIG[s.result.category];
+                return `
+                  <button class="text-left p-3 bg-white rounded-xl border border-gray-100 hover:border-gray-200 text-xs transition-all" data-idx="${i}">
+                    <div class="font-medium text-gray-800 line-clamp-2 leading-relaxed">${escapeHTML(s.requirement)}</div>
+                    <div class="flex items-center gap-1 mt-1.5">
+                      <div class="w-1 h-1 rounded-full ${cfg.dot}"></div>
+                      <span class="text-xs text-gray-400">${escapeHTML(s.result.category)}</span>
+                    </div>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <button id="retryBtn3" class="w-full py-4 rounded-2xl bg-gray-900 text-white text-base font-semibold shadow-lg shadow-gray-900/20 active:scale-[0.98]">
+            重新输入
+          </button>
+        </div>
+      `;
+
+      views.result.querySelectorAll('[data-idx]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx);
+          textarea.value = SAMPLES[idx].requirement;
+          textarea.dispatchEvent(new Event('input'));
+          setTimeout(() => analyze(true), 200);
+        });
+      });
+
+      $('retryBtn3').addEventListener('click', () => {
+        textarea.value = '';
+        submitBtn.disabled = true;
+        hint.textContent = '';
+        showView('input');
+      });
+    }
+
+    showView('intro');
+  </script>
+</body>
+</html>
